@@ -17,6 +17,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -575,9 +578,19 @@ function nice(v){if(v<=0)return 1;const e=10**Math.floor(Math.log10(v)),f=v/e;re
 
 /* ---------- charts ---------- */
 function cumulative(ym){const n=daysIn(ym),a=new Array(n+1).fill(0);for(const t of txnsIn(ym))if(t.kind!=='income')a[+t.date.slice(8)]+=t.amount;for(let i=1;i<=n;i++)a[i]+=a[i-1];return a}
+// Average running total of the previous 3 months that have data, day by day (shorter months hold their final total).
+const AVG_N=3;
+function avgCum(ym){
+  const N=daysIn(ym),first=S.txns.reduce((m,t)=>t.date.slice(0,7)<m?t.date.slice(0,7):m,ym),ms=[];
+  for(let i=1;i<=AVG_N;i++){const m=addMonth(ym,-i);if(m>=first)ms.push(m)}
+  const out=new Array(N+1).fill(0);if(!ms.length)return {a:out,n:0};
+  for(const m of ms){const c=cumulative(m);for(let d=1;d<=N;d++)out[d]+=c[Math.min(d,c.length-1)]/ms.length}
+  return {a:out,n:ms.length};
+}
+const avgLabel=n=>n>1?`your ${n}-month average`:'last month';
 function cumChart(ym){
   const N=daysIn(ym), cur=ymOf(new Date()), lastDay=ym===cur?new Date().getDate():ym<cur?N:0;
-  const a=cumulative(ym), p=cumulative(addMonth(ym,-1)), B=totalBudget();
+  const a=cumulative(ym), av=avgCum(ym), p=av.a, B=totalBudget();
   const max=Math.max(B,a[lastDay]||0,p[p.length-1],100);
   // The axis starts at the monthly total of recurring bills, so the room above shows everyday spending.
   const rec=Math.round(sum(S.recurring.filter(r=>!r.paused&&r.kind!=='income'),r=>r.amount*(PER_MONTH[r.freq]||0)));
@@ -589,7 +602,7 @@ function cumChart(ym){
   const ticks=[1,8,15,22,N];
   g+=ticks.map((d,i)=>`<text x="${x(d)}" y="${H-6}" text-anchor="${i===0?'start':i===ticks.length-1?'end':'middle'}">${monthLabel(ym,1)} ${d}</text>`).join('');
   g+=`<line x1="${x(1)}" y1="${y(B/N)}" x2="${x(N)}" y2="${y(B)}" stroke="var(--muted)" stroke-dasharray="4 5" stroke-width="1.5" opacity=".7"/>`;
-  const pn=Math.min(N,p.length-1);let pp='';for(let d=1;d<=pn;d++)pp+=(d===1?'M':'L')+x(d).toFixed(1)+' '+y(p[d]).toFixed(1);
+  const pn=av.n?N:0;let pp='';for(let d=1;d<=pn;d++)pp+=(d===1?'M':'L')+x(d).toFixed(1)+' '+y(p[d]).toFixed(1);
   g+=`<path d="${pp}" fill="none" stroke="var(--muted)" stroke-width="2" opacity=".45"/>`;
   if(lastDay>0){
     let cp='';for(let d=1;d<=lastDay;d++)cp+=(d===1?'M':'L')+x(d).toFixed(1)+' '+y(a[d]).toFixed(1);
@@ -599,7 +612,7 @@ function cumChart(ym){
     g+=`<circle cx="${x(lastDay)}" cy="${y(a[lastDay])}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2.5"/>`;
   }
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative spending by day">${g}</svg>
-  <div class="legend"><span><i style="background:var(--accent)"></i>${monthLabel(ym,1)} spending</span><span><i style="background:var(--muted);opacity:.5"></i>${monthLabel(addMonth(ym,-1),1)}</span><span><i style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 8px)"></i>Budget pace</span>${lo?`<span>Starts at ${money(lo,1)}, your recurring bills</span>`:''}</div>`;
+  <div class="legend"><span><i style="background:var(--accent)"></i>${monthLabel(ym,1)} spending</span>${av.n?`<span><i style="background:var(--muted);opacity:.5"></i>${av.n>1?av.n+'-month average':monthLabel(addMonth(ym,-1),1)}</span>`:''}<span><i style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 8px)"></i>Budget pace</span>${lo?`<span>Starts at ${money(lo,1)}, your recurring bills</span>`:''}</div>`;
 }
 function donut(rows,total){
   const r=70,C=2*Math.PI*r;let off=0,g='';
@@ -659,7 +672,7 @@ function yearCard(ym){
 function vDashboard(){
   const ym=ui.month, spent=spentIn(ym), inc=incomeIn(ym), B=totalBudget(), left=B-spent;
   const cur=ymOf(new Date()), N=daysIn(ym), dayNow=ym===cur?new Date().getDate():N;
-  const prevCum=cumulative(addMonth(ym,-1)), prevAt=prevCum[Math.min(dayNow,prevCum.length-1)], diff=spent-prevAt;
+  const av=avgCum(ym), prevAt=av.a[dayNow], diff=spent-prevAt;
   const daysLeft=ym===cur?N-dayNow:0;
   const by=spentByCat(ym);
   const cats=S.categories.filter(c=>+c.budget>0).sort((a,b)=>(by[b.id]||0)/(b.budget||1)-(by[a.id]||0)/(a.budget||1)).slice(0,5);
@@ -670,7 +683,7 @@ function vDashboard(){
       <div class="eyebrow">${left>=0?'Left to spend':'Over budget'}</div>
       <div class="big num ${left<0?'over':''}">${money(Math.abs(left),1)}</div>
       <div class="sub num">${money(spent,1)} spent of ${money(B,1)}${daysLeft?` · ${daysLeft} day${daysLeft===1?'':'s'} left`:''}${daysLeft&&left>0?` · ${money(left/daysLeft,1)}/day`:''} · <button class="link" data-edit-bud style="font-size:14px">Change budget</button></div>
-      <div class="sub num" style="margin:4px 0 14px">${Math.abs(diff)<1?`About the same as ${monthLabel(addMonth(ym,-1),1)} at this point`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> than ${monthLabel(addMonth(ym,-1),1)} at this point`}</div>
+      <div class="sub num" style="margin:4px 0 14px">${!av.n?'No earlier months to compare with yet':Math.abs(diff)<1?`About the same as ${avgLabel(av.n)} at this point`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> than ${avgLabel(av.n)} at this point`}</div>
       ${cumChart(ym)}
     </section>
     <section class="card">
