@@ -23,6 +23,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -87,6 +90,11 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);min-width:0}
 .card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .card-h h2{font-size:17px}
+.over-call{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);background:color-mix(in srgb,var(--bad) 9%,var(--surface));color:var(--fg);border-radius:12px;padding:10px 12px;margin:2px 0 14px}
+.over-call .oc-h{font-size:14px}.over-call .oc-h b{color:var(--bad)}
+.over-call .oc-l{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.over-call .oc-l b{color:var(--bad);font-weight:700}
+.over-call .dot{width:8px;height:8px;margin-right:6px}
 .bud-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:760px){.hide-m{display:none}.bud-actions{width:100%;flex-wrap:nowrap}.bud-actions .btn{flex:1 1 auto;justify-content:center;padding-inline:8px;white-space:nowrap}}
 .link{border:0;background:none;color:var(--accent);font-weight:600;padding:0;font-size:14px}
@@ -626,6 +634,12 @@ function donut(rows,total){
 
 /* ---------- pieces ---------- */
 const ico=c=>`<span class="ico" style="--c:${esc(c.color)}" aria-hidden="true">${esc(c.icon)}</span>`;
+// Categories that went past their monthly budget, largest overage first.
+function overList(ym){const by=spentByCat(ym);return S.categories.filter(c=>+c.budget>0&&(by[c.id]||0)>+c.budget+.005).map(c=>({c,over:(by[c.id]||0)-c.budget})).sort((a,b)=>b.over-a.over)}
+function overCallout(ym){
+  const L=overList(ym);if(!L.length)return '';const tot=sum(L,x=>x.over);
+  return `<button class="over-call" data-tab="budgets"><span class="oc-h"><b class="num">${money(tot,1)} over budget</b> in ${L.length} categor${L.length===1?'y':'ies'}</span><span class="oc-l">${L.map(x=>`<span class="oc-i"><span class="dot" style="--c:${esc(x.c.color)}"></span>${esc(x.c.name)} <b class="num">+${money(x.over,1)}</b></span>`).join('')}</span></button>`;
+}
 function budRow(c,spent,ym,asButton){
   const b=+c.budget||0, pct=b?Math.min(100,spent/b*100):(spent?100:0), [st,lab]=status(spent,b), mp=monthProgress(ym);
   const left=b-spent;
@@ -687,13 +701,14 @@ function vDashboard(){
       <div class="big num ${left<0?'over':''}">${money(Math.abs(left),1)}</div>
       <div class="sub num">${money(spent,1)} spent of ${money(B,1)}${daysLeft?` · ${daysLeft} day${daysLeft===1?'':'s'} left`:''}${daysLeft&&left>0?` · ${money(left/daysLeft,1)}/day`:''} · <button class="link" data-edit-bud style="font-size:14px">Change budget</button></div>
       <div class="sub num" style="margin:4px 0 14px">${!av.n?'No earlier months to compare with yet':Math.abs(diff)<1?`About the same as ${avgLabel(av.n)} at this point`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> than ${avgLabel(av.n)} at this point`}</div>
-      ${cumChart(ym)}
+      ${overCallout(ym)}${cumChart(ym)}
     </section>
     <section class="card">
       <div class="card-h"><h2>${monthLabel(ym,1)} at a glance</h2></div>
       <div class="stats">
         <div class="stat"><span class="sub">Income</span><span class="v num good">${money(inc,1)}</span></div>
         <div class="stat"><span class="sub">Spent</span><span class="v num">${money(spent,1)}</span></div>
+        ${(()=>{const L=overList(ym),t=sum(L,x=>x.over);return `<div class="stat"><span class="sub">Over budget${L.length?` (${L.length} categor${L.length===1?'y':'ies'})`:''}</span><span class="v num ${t?'bad':''}">${money(t,1)}</span></div>`})()}
         <div class="stat"><span class="sub">Net</span><span class="v num ${inc-spent>=0?'good':'bad'}">${inc-spent<0?'−':''}${money(Math.abs(inc-spent),1)}</span></div>
         ${ym===cur?(()=>{const end=ym+'-'+pad(N),due=sum(S.recurring.filter(r=>!r.paused&&r.kind!=='income'),r=>occurrences(r,todayStr(),end).length*r.amount);return `<div class="stat"><span class="sub">Recurring still due this month</span><span class="v num">${money(due,1)}</span></div>`})():''}
         <div class="stat"><span class="sub">Saved of income</span><span class="v num">${inc?Math.round((inc-spent)/inc*100):0}%</span></div>
@@ -750,6 +765,7 @@ function vBudgets(){
     <div class="card"><div class="eyebrow">Spent</div><div class="v num">${money(spent,1)}</div></div>
     <div class="card"><div class="eyebrow">${B-spent>=0?'Remaining':'Over'}</div><div class="v num" style="color:${B-spent>=0?'var(--good)':'var(--bad)'}">${money(Math.abs(B-spent),1)}</div></div>
   </div>
+  ${overCallout(ym).replace('<button class="over-call" data-tab="budgets">','<div class="over-call">').replace(/<\/button>$/,'</div>')}
   <section class="card"><div class="card-h"><h2>Monthly budgets</h2>${ui.editBud?'':`<div class="bud-actions"><button class="btn sm primary" data-edit-bud>Edit budgets</button><button class="btn sm" data-add-cat>+ Category</button><button class="btn sm" data-toggle-manage>${ui.manage?'Done':'Remove'}</button></div>`}</div>
     <div class="sub" style="margin:-6px 0 8px" ${ui.editBud||ui.manage?'hidden':''}>Tap a category to change its budget, icon or color. The thin mark shows where you'd be if you spent evenly through the month.</div>
     ${ui.editBud?budEditor(ym):ui.manage?S.categories.map(c=>{const n=S.txns.filter(t=>t.categoryId===c.id).length;return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">${ico(c)}<div class="txn-main"><div class="m">${esc(c.name)}</div><div class="c" style="white-space:normal">${n} transaction${n===1?'':'s'} · ${money(+c.budget||0,1)}/mo budget</div></div><button class="btn sm danger" data-arm="del-cat" data-cat="${esc(c.id)}" title="${n} transaction${n===1?'':'s'} will become Uncategorized">Remove</button></div>`}).join('')+'<div class="sub" style="margin-top:8px">Removing a category keeps its transactions and marks them Uncategorized. To move them into another category instead, tap the category and use Delete there.</div>'
