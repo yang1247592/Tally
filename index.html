@@ -35,6 +35,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -120,9 +123,13 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 .rtag{margin-left:6px;font-weight:700;color:var(--accent)}
 .txn .a{font-size:15.5px}
 .over-call{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);background:color-mix(in srgb,var(--bad) 9%,var(--surface));color:var(--fg);border-radius:12px;padding:10px 12px;margin:2px 0 14px}
-.over-call .oc-h{font-size:14px}.over-call .oc-h b{color:var(--bad)}
+.over-call .oc-h{font-size:14px}.over-call b.bad{color:var(--bad)}.over-call b.warn{color:var(--warn)}
 .over-call .oc-l{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
-.over-call .oc-l b{color:var(--bad);font-weight:700}
+.over-call .oc-l b{font-weight:700}
+.over-call.pace-only{border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
+.pace-line{font-size:13.5px;border-radius:10px;padding:8px 10px;margin:0 0 12px;color:var(--fg)}
+.pace-line.warn{background:color-mix(in srgb,var(--warn) 12%,transparent)}.pace-line.warn>b:first-child{color:var(--warn)}
+.pace-line.good{background:color-mix(in srgb,var(--good) 10%,transparent)}.pace-line.good>b:first-child{color:var(--good)}
 .over-call .dot{width:8px;height:8px;margin-right:6px}
 .bud-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:760px){.hide-m{display:none}.bud-actions{width:100%;flex-wrap:nowrap}.bud-actions .btn{flex:1 1 auto;justify-content:center;padding-inline:8px;white-space:nowrap}}
@@ -643,7 +650,7 @@ function cumChart(ym){
   for(let v=lo;v<=top+.001;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`;
   const ticks=[1,8,15,22,N];
   g+=ticks.map((d,i)=>`<text x="${x(d)}" y="${H-6}" text-anchor="${i===0?'start':i===ticks.length-1?'end':'middle'}">${monthLabel(ym,1)} ${d}</text>`).join('');
-  g+=`<line x1="${x(1)}" y1="${y(B/N)}" x2="${x(N)}" y2="${y(B)}" stroke="var(--c-pace)" stroke-dasharray="4 5" stroke-width="2"/>`;
+  {const pc=paceCurve(ym);let pd='';for(let d=1;d<=N;d++)pd+=(d===1?'M':'L')+x(d).toFixed(1)+' '+y(pc[d]).toFixed(1);g+=`<path d="${pd}" fill="none" stroke="var(--c-pace)" stroke-dasharray="4 5" stroke-width="2"/>`}
   const pn=av.n?N:0;let pp='';for(let d=1;d<=pn;d++)pp+=(d===1?'M':'L')+x(d).toFixed(1)+' '+y(p[d]).toFixed(1);
   g+=`<path d="${pp}" fill="none" stroke="var(--c-avg)" stroke-width="2.2" stroke-linejoin="round"/>`;
   if(lastDay>0){
@@ -667,18 +674,55 @@ function donut(rows,total){
 const ico=c=>`<span class="ico" style="--c:${esc(c.color)}" aria-hidden="true">${esc(c.icon)}</span>`;
 // Categories that went past their monthly budget, largest overage first.
 function overList(ym){const by=spentByCat(ym);return S.categories.filter(c=>+c.budget>0&&(by[c.id]||0)>+c.budget+.005).map(c=>({c,over:(by[c.id]||0)-c.budget})).sort((a,b)=>b.over-a.over)}
-function overCallout(ym){
-  const L=overList(ym);if(!L.length)return '';const tot=sum(L,x=>x.over);
-  return `<button class="over-call" data-tab="budgets"><span class="oc-h"><b class="num">${money(tot,1)} over budget</b> in ${L.length} categor${L.length===1?'y':'ies'}</span><span class="oc-l">${L.map(x=>`<span class="oc-i"><span class="dot" style="--c:${esc(x.c.color)}"></span>${esc(x.c.name)} <b class="num">+${money(x.over,1)}</b></span>`).join('')}</span></button>`;
+function overCallout(ym,asDiv){
+  const L=overList(ym),P=overPaceList(ym);if(!L.length&&!P.length)return '';
+  const item=(c,v,cls)=>`<span class="oc-i"><span class="dot" style="--c:${esc(c.color)}"></span>${esc(c.name)} <b class="num ${cls}">+${money(v,1)}</b></span>`;
+  const tag=asDiv?'div':'button';
+  return `<${tag} class="over-call${L.length?'':' pace-only'}" ${asDiv?'':'data-tab="budgets"'}>${L.length?`<span class="oc-h"><b class="num bad">${money(sum(L,x=>x.over),1)} over budget</b> in ${L.length} categor${L.length===1?'y':'ies'}</span><span class="oc-l">${L.map(x=>item(x.c,x.over,'bad')).join('')}</span>`:''}${P.length?`<span class="oc-h"><b class="num warn">${money(sum(P,x=>x.p.ahead),1)} over pace</b> in ${P.length} categor${P.length===1?'y':'ies'}, spending faster than a steady rate</span><span class="oc-l">${P.map(x=>item(x.c,x.p.ahead,'warn')).join('')}</span>`:''}</${tag}>`;
+}
+/* Spending pace. Recurring bills count in full on the day they're due; everything else in the
+   budget is spread evenly over the month. paceCurve(ym,cid)[d] is where spending "should" be by day d.
+   cid undefined = whole budget, null = uncategorized, otherwise a category id. */
+function paceCurve(ym,cid){
+  const N=daysIn(ym),cur=ymOf(new Date()),fixed=new Array(N+2).fill(0);
+  const match=x=>x.kind!=='income'&&(cid===undefined||(x.categoryId||null)===cid);
+  // A bill counts as fixed if a schedule posted it, or it matches a schedule by name or by category and amount.
+  const rs=S.recurring.filter(r=>r.kind!=='income'),names=new Set(rs.map(r=>r.merchant.trim().toLowerCase())),keys=new Set(rs.map(r=>(r.categoryId||'')+'|'+(+r.amount).toFixed(2)));
+  const isBill=t=>t.recurId||names.has(t.merchant.trim().toLowerCase())||keys.has((t.categoryId||'')+'|'+(+t.amount).toFixed(2));
+  for(const t of txnsIn(ym))if(match(t)&&isBill(t))fixed[+t.date.slice(8)]+=t.amount;
+  if(ym>=cur){const from=ym===cur?todayStr():ym+'-01',to=ym+'-'+pad(N);
+    for(const r of S.recurring)if(!r.paused&&match(r))for(const d of occurrences(r,from,to))if(!(ym===cur&&d===todayStr()))fixed[+d.slice(8)]+=r.amount}
+  const B=cid===undefined?totalBudget():(+(S.categories.find(c=>c.id===cid)||{}).budget||0);
+  const rec=fixed.reduce((a,b)=>a+b,0),flex=Math.max(0,B-rec),out=new Array(N+1).fill(0);
+  let f=0;for(let d=1;d<=N;d++){f+=fixed[d];out[d]=f+flex*d/N}
+  return out;
+}
+// For the current month: how far spending is ahead of (+) or behind (−) pace today.
+function paceNow(ym,cid,spent){
+  const cur=ymOf(new Date());if(ym!==cur)return null;
+  const d=new Date().getDate(),N=daysIn(ym),p=paceCurve(ym,cid)[d];
+  const B=cid===undefined?totalBudget():(+(S.categories.find(c=>c.id===cid)||{}).budget||0);
+  if(!B)return null;
+  return {pace:p,ahead:spent-p,B,daysLeft:N-d,perDay:N-d>0?(B-spent)/(N-d):0};
+}
+function overPaceList(ym){const by=spentByCat(ym);return S.categories.filter(c=>+c.budget>0&&(by[c.id]||0)<=+c.budget).map(c=>({c,p:paceNow(ym,c.id,by[c.id]||0)})).filter(x=>x.p&&x.p.ahead>=1).sort((a,b)=>b.p.ahead-a.p.ahead)}
+function paceLine(ym){
+  const spent=spentIn(ym),p=paceNow(ym,undefined,spent);if(!p)return '';
+  if(spent>p.B)return '';
+  if(p.ahead>=1)return `<div class="pace-line warn"><b class="num">${money(p.ahead,1)} over pace.</b> ${p.daysLeft?`To finish under budget, keep to <b class="num">${money(Math.max(0,p.perDay),1)}/day</b> for the next ${p.daysLeft} day${p.daysLeft===1?'':'s'}.`:''}</div>`;
+  return `<div class="pace-line good"><b class="num">${money(-p.ahead,1)} under pace.</b> On track to finish under budget${p.daysLeft?`, with ${money(p.perDay,1)}/day to spend`:''}.</div>`;
 }
 function budRow(c,spent,ym,asButton){
-  const b=+c.budget||0, pct=b?Math.min(100,spent/b*100):(spent?100:0), [st,lab]=status(spent,b), mp=monthProgress(ym);
+  const b=+c.budget||0, pct=b?Math.min(100,spent/b*100):(spent?100:0), pn=b&&c.id?paceNow(ym,c.id,spent):null;
+  let [st,lab]=status(spent,b);
+  if(pn&&st!=='over')[st,lab]=pn.ahead>=1?['near','Over pace']:['ok','On track'];
+  const mk=pn&&pn.pace<b?pn.pace/b:null;
   const left=b-spent;
   const tag=asButton?'button':'div';
   return `<${tag} class="bud" ${asButton?`data-filtercat="${esc(c.id)}" ${ui.tab==='budgets'&&ui.cat===c.id?'aria-pressed="true"':''}`:''}>${ico(c)}<div class="bud-main">
     <div class="bud-row"><span class="name">${esc(c.name)}</span><span class="amt num"><b>${money(spent,1)}</b> / ${money(b,1)}</span></div>
-    <div class="bar" style="--c:${st==='over'?'var(--bad)':esc(c.color)}"><i style="width:${pct}%"></i>${b&&mp>0&&mp<1?`<u style="left:${mp*100}%" title="Where you'd be on pace today"></u>`:''}</div>
-    <div class="bud-row" style="margin-top:5px;font-size:12.5px"><span class="amt">${b?(left>=0?money(left,1)+' left':money(-left,1)+' over'):''}</span><span class="pill ${st}">${lab}</span></div>
+    <div class="bar" style="--c:${st==='over'?'var(--bad)':esc(c.color)}"><i style="width:${pct}%"></i>${mk!=null?`<u style="left:${mk*100}%" title="Where you'd be on pace today"></u>`:''}</div>
+    <div class="bud-row" style="margin-top:5px;font-size:12.5px"><span class="amt">${b?(left>=0?money(left,1)+' left':money(-left,1)+' over'):''}${pn&&left>=0&&Math.abs(pn.ahead)>=1?` · <span style="color:${pn.ahead>0?'var(--warn)':'var(--good)'}">${money(Math.abs(pn.ahead),1)} ${pn.ahead>0?'over':'under'} pace</span>`:''}</span><span class="pill ${st}">${lab}</span></div>
   </div></${tag}>`;
 }
 function txnRow(t){
@@ -732,7 +776,7 @@ function vDashboard(){
       <div class="big num ${left<0?'over':''}">${money(Math.abs(left),1)}</div>
       <div class="sub num">${money(spent,1)} spent of ${money(B,1)}${daysLeft?` · ${daysLeft} day${daysLeft===1?'':'s'} left`:''}${daysLeft&&left>0?` · ${money(left/daysLeft,1)}/day`:''} · <button class="link" data-edit-bud style="font-size:14px">Change budget</button></div>
       <div class="sub num" style="margin:4px 0 14px">${!av.n?'No earlier months to compare with yet':Math.abs(diff)<1?`About the same as ${avgLabel(av.n)} at this point`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> than ${avgLabel(av.n)} at this point`}</div>
-      ${overCallout(ym)}${cumChart(ym)}
+      ${paceLine(ym)}${overCallout(ym)}${cumChart(ym)}
     </section>
     <section class="card">
       <div class="card-h"><h2>${monthLabel(ym,1)} at a glance</h2></div>
@@ -791,7 +835,7 @@ function budEditor(ym){
 function vBudgets(){
   const ym=ui.month, by=spentByCat(ym), B=totalBudget(), spent=spentIn(ym);
   const unc=by['_']||0;
-  const seg=`<div class="seg spseg" role="tablist" aria-label="Show"><button type="button" role="tab" data-sp="tx" aria-pressed="${ui.sp!=='bud'}">Transactions</button><button type="button" role="tab" data-sp="bud" aria-pressed="${ui.sp==='bud'}">Budgets${overList(ym).length?' <span class="segdot"></span>':''}</button></div>`;
+  const seg=`<div class="seg spseg" role="tablist" aria-label="Show"><button type="button" role="tab" data-sp="tx" aria-pressed="${ui.sp!=='bud'}">Transactions</button><button type="button" role="tab" data-sp="bud" aria-pressed="${ui.sp==='bud'}">Budgets${overList(ym).length?' <span class="segdot"></span>':overPaceList(ym).length?' <span class="segdot" style="background:var(--warn)"></span>':''}</button></div>`;
   if(ui.sp!=='bud')return header('Spending',1)+seg+`<div id="txsec">${txSection()}</div>`;
   return header('Spending',1)+seg+`
   <div class="sumrow">
@@ -799,7 +843,7 @@ function vBudgets(){
     <div class="card"><div class="eyebrow">Spent</div><div class="v num">${money(spent,1)}</div></div>
     <div class="card"><div class="eyebrow">${B-spent>=0?'Remaining':'Over'}</div><div class="v num" style="color:${B-spent>=0?'var(--good)':'var(--bad)'}">${money(Math.abs(B-spent),1)}</div></div>
   </div>
-  ${overCallout(ym).replace('<button class="over-call" data-tab="budgets">','<div class="over-call">').replace(/<\/button>$/,'</div>')}
+  ${paceLine(ym)}${overCallout(ym,1)}
   <section class="card"><div class="card-h"><h2>Monthly budgets</h2>${ui.editBud?'':`<div class="bud-actions"><button class="btn sm primary" data-edit-bud>Edit budgets</button><button class="btn sm" data-add-cat>+ Category</button><button class="btn sm" data-toggle-manage>${ui.manage?'Done':'Remove'}</button></div>`}</div>
     <div class="sub" style="margin:-6px 0 8px" ${ui.editBud||ui.manage?'hidden':''}>Tap a category to see its transactions. The thin mark shows where you'd be if you spent evenly through the month.</div>
     ${ui.editBud?budEditor(ym):ui.manage?S.categories.map(c=>{const n=S.txns.filter(t=>t.categoryId===c.id).length;return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">${ico(c)}<div class="txn-main"><div class="m">${esc(c.name)}</div><div class="c" style="white-space:normal">${n} transaction${n===1?'':'s'} · ${money(+c.budget||0,1)}/mo budget</div></div><button class="btn sm danger" data-arm="del-cat" data-cat="${esc(c.id)}" title="${n} transaction${n===1?'':'s'} will become Uncategorized">Remove</button></div>`}).join('')+'<div class="sub" style="margin-top:8px">Removing a category keeps its transactions and marks them Uncategorized. To move them into another category instead, tap the category and use Delete there.</div>'
