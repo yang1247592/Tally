@@ -44,6 +44,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -740,7 +743,8 @@ function dayLabel(ds){
   if(ds===t)return 'Today'; if(ds===ymOf(y)+'-'+pad(y.getDate()))return 'Yesterday';
   return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
-const sortTx=a=>a.slice().sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:0);
+// Newest date first; on the same day, the most recently added first.
+const sortTx=a=>{const pos=new Map(S.txns.map((t,i)=>[t,i]));return a.slice().sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(pos.get(y)??0)-(pos.get(x)??0))};
 
 /* ---------- views ---------- */
 function header(title,withMonth,action){
