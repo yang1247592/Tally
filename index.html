@@ -32,6 +32,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -96,7 +99,9 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);min-width:0}
 .card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .card-h h2{font-size:17px}
-.tx-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:28px 0 12px}
+.tx-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;min-height:34px}
+.spseg{margin:-4px 0 16px}.spseg button{padding:10px}
+.segdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);vertical-align:middle;margin-left:4px}
 .tx-head h2{font-size:22px;margin-bottom:2px}
 .tx-search{position:relative;display:block;margin-bottom:10px}
 .tx-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
@@ -416,7 +421,7 @@ function seed(){
   return {categories:DEFAULT_CATS.map(c=>({...c})),txns,recurring,example:true};
 }
 
-let S; const ui={tab:'dashboard',month:ymOf(new Date()),q:'',cat:'all',manage:false,editBud:false};
+let S; const ui={sp:'tx',tab:'dashboard',month:ymOf(new Date()),q:'',cat:'all',manage:false,editBud:false};
 try{const raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
 if(!S||!Array.isArray(S.txns)||!Array.isArray(S.categories))S=seed();
 if(!Array.isArray(S.recurring))S.recurring=S.example?seed().recurring:[];
@@ -764,7 +769,7 @@ function txSection(){
   const chip=(v,label,icon,color)=>`<button type="button" class="chip" data-fcat="${esc(v)}" style="--c:${esc(color)}" aria-pressed="${ui.cat===v}">${icon?`<span class="ci">${esc(icon)}</span>`:''}${esc(label)}</button>`;
   const body=days.map(g=>{const spent=sum(g.t.filter(t=>t.kind!=='income'),t=>t.amount);
     return `<div class="dgroup"><div class="dgh"><span>${dayLabel(g.d)}</span><span class="num">${spent?money(spent):''}</span></div><div class="dcard">${g.t.map(txnRow).join('')}</div></div>`}).join('');
-  return `<div class="tx-head"><div><h2>Transactions</h2><div class="sub num">${list.length} transaction${list.length===1?'':'s'} · ${money(tot,1)} spent${inc?` · <span style="color:var(--good)">${money(inc,1)} in</span>`:''}</div></div>
+  return `<div class="tx-head"><div><div class="sub num">${list.length} transaction${list.length===1?'':'s'} · ${money(tot,1)} spent${inc?` · <span style="color:var(--good)">${money(inc,1)} in</span>`:''}</div></div>
     ${fc?`<button class="btn sm" data-editcat="${esc(fc.id)}">Edit ${esc(fc.name)}</button>`:''}</div>
   <label class="tx-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search merchant, note or category" value="${esc(ui.q)}" aria-label="Search transactions" autocomplete="off"></label>
   <div class="fchips" role="group" aria-label="Filter by category">${chip('all','All','','var(--accent)')}${chip('income','Income','💵','var(--good)')}${S.categories.map(c=>chip(c.id,c.name,c.icon,c.color)).join('')}</div>
@@ -786,7 +791,9 @@ function budEditor(ym){
 function vBudgets(){
   const ym=ui.month, by=spentByCat(ym), B=totalBudget(), spent=spentIn(ym);
   const unc=by['_']||0;
-  return header('Spending',1)+`
+  const seg=`<div class="seg spseg" role="tablist" aria-label="Show"><button type="button" role="tab" data-sp="tx" aria-pressed="${ui.sp!=='bud'}">Transactions</button><button type="button" role="tab" data-sp="bud" aria-pressed="${ui.sp==='bud'}">Budgets${overList(ym).length?' <span class="segdot"></span>':''}</button></div>`;
+  if(ui.sp!=='bud')return header('Spending',1)+seg+`<div id="txsec">${txSection()}</div>`;
+  return header('Spending',1)+seg+`
   <div class="sumrow">
     <div class="card"><div class="eyebrow" style="display:flex;justify-content:space-between;gap:8px">Budgeted${ui.editBud?'':'<button class="link hide-m" data-edit-bud style="font-size:12px;text-transform:none;letter-spacing:0">Change</button>'}</div><div class="v num">${money(B,1)}</div></div>
     <div class="card"><div class="eyebrow">Spent</div><div class="v num">${money(spent,1)}</div></div>
@@ -798,8 +805,7 @@ function vBudgets(){
     ${ui.editBud?budEditor(ym):ui.manage?S.categories.map(c=>{const n=S.txns.filter(t=>t.categoryId===c.id).length;return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">${ico(c)}<div class="txn-main"><div class="m">${esc(c.name)}</div><div class="c" style="white-space:normal">${n} transaction${n===1?'':'s'} · ${money(+c.budget||0,1)}/mo budget</div></div><button class="btn sm danger" data-arm="del-cat" data-cat="${esc(c.id)}" title="${n} transaction${n===1?'':'s'} will become Uncategorized">Remove</button></div>`}).join('')+'<div class="sub" style="margin-top:8px">Removing a category keeps its transactions and marks them Uncategorized. To move them into another category instead, tap the category and use Delete there.</div>'
       :S.categories.map(c=>budRow(c,by[c.id]||0,ym,1)).join('')}
     ${unc?budRow(UNCAT,unc,ym,0):''}
-  </section>
-  <div id="txsec">${txSection()}</div>`;
+  </section>`;
 }
 function vTrends(){
   const ym=ui.month, by=spentByCat(ym), total=spentIn(ym);
@@ -1071,22 +1077,23 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('button,.overlay');if(!el)return;
   if(el.id==='overlay'){if(e.target===el)closeSheet();return}
   const d=el.dataset;
-  if(d.tab){ui.manage=false;ui.editBud=false;ui.tab=d.tab==='transactions'?'budgets':d.tab;saveUI();render();window.scrollTo(0,0);return}
+  if(d.tab){ui.manage=false;ui.editBud=false;ui.sp=d.tab==='budgets'&&!el.closest('#nav')?'bud':'tx';ui.tab=d.tab==='transactions'?'budgets':d.tab;saveUI();render();window.scrollTo(0,0);return}
   if(d.monthStep){ui.month=addMonth(ui.month,+d.monthStep);render();return}
   if(d.month){ui.month=d.month;render();return}
   if('addTxn' in d){txnSheet();return}
   if(d.edittxn){txnSheet(S.txns.find(t=>t.id===d.edittxn));return}
   if('addCat' in d){catSheet();return}
   if('addRec' in d){recSheet();return}
-  if('editBud' in d){ui.tab='budgets';ui.editBud=true;ui.manage=false;saveUI();render();const f=$('#budForm');if(f)f.scrollIntoView({block:'start'});return}
+  if('editBud' in d){ui.tab='budgets';ui.sp='bud';ui.editBud=true;ui.manage=false;saveUI();render();const f=$('#budForm');if(f)f.scrollIntoView({block:'start'});return}
   if('cancelBud' in d){ui.editBud=false;render();return}
   if('toggleManage' in d){ui.editBud=false;ui.manage=!ui.manage;render();return}
   if(d.editrec){recSheet(S.recurring.find(r=>r.id===d.editrec));return}
   if(d.editcat){catSheet(S.categories.find(c=>c.id===d.editcat));return}
   if(d.fcat!==undefined&&d.fcat!==''){ui.cat=ui.cat===d.fcat&&d.fcat!=='all'?'all':d.fcat;render();const c=document.querySelector(`.fchips [data-fcat="${CSS.escape(ui.cat)}"]`);if(c)c.scrollIntoView({inline:'center',block:'nearest'});return}
-  if(d.filtercat){ui.cat=ui.tab==='budgets'&&ui.cat===d.filtercat?'all':d.filtercat;ui.q='';ui.manage=false;if(ui.tab!=='budgets'){ui.tab='budgets';saveUI()}render();const t=$('#txsec');if(t&&ui.cat!=='all')t.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(d.sp){ui.sp=d.sp;ui.manage=false;ui.editBud=false;render();window.scrollTo(0,0);return}
+  if(d.filtercat){ui.cat=d.filtercat;ui.q='';ui.manage=false;ui.sp='tx';if(ui.tab!=='budgets'){ui.tab='budgets';saveUI()}render();window.scrollTo(0,0);return}
   if('clearFilter' in d){ui.cat='all';ui.q='';render();return}
-  if('showTx' in d){ui.tab='budgets';ui.cat='all';ui.q='';ui.manage=false;ui.editBud=false;saveUI();render();const t=$('#txsec');if(t)t.scrollIntoView({block:'start'});return}
+  if('showTx' in d){ui.tab='budgets';ui.sp='tx';ui.cat='all';ui.q='';ui.manage=false;ui.editBud=false;saveUI();render();const t=$('#txsec');if(t)t.scrollIntoView({block:'start'});return}
   if('close' in d){closeSheet();return}
   if(d.kind){el.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===el));$('#tx-kind').value=d.kind;$('#tx-cat-wrap').hidden=d.kind==='income';el.closest('form').dataset.kind=d.kind;return}
   if('pickcat' in d){el.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===el));$('#tx-cat').value=d.pickcat;return}
