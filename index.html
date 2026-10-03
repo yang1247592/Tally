@@ -38,6 +38,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -709,8 +712,8 @@ function overPaceList(ym){const by=spentByCat(ym);return S.categories.filter(c=>
 function paceLine(ym){
   const spent=spentIn(ym),p=paceNow(ym,undefined,spent);if(!p)return '';
   if(spent>p.B)return '';
-  if(p.ahead>=1)return `<div class="pace-line warn"><b class="num">${money(p.ahead,1)} over pace.</b> ${p.daysLeft?`To finish under budget, keep to <b class="num">${money(Math.max(0,p.perDay),1)}/day</b> for the next ${p.daysLeft} day${p.daysLeft===1?'':'s'}.`:''}</div>`;
-  return `<div class="pace-line good"><b class="num">${money(-p.ahead,1)} under pace.</b> On track to finish under budget${p.daysLeft?`, with ${money(p.perDay,1)}/day to spend`:''}.</div>`;
+  if(p.ahead>=1)return `<div class="pace-line warn"><b class="num">${money(p.ahead,1)} over pace</b> for this point in the month</div>`;
+  return `<div class="pace-line good"><b class="num">${money(-p.ahead,1)} under pace</b> for this point in the month</div>`;
 }
 function budRow(c,spent,ym,asButton){
   const b=+c.budget||0, pct=b?Math.min(100,spent/b*100):(spent?100:0), pn=b&&c.id?paceNow(ym,c.id,spent):null;
