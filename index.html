@@ -50,6 +50,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -110,7 +113,17 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 
 .grid{display:grid;gap:18px}
 .mt{margin-top:18px}
-.monthnav i{font-style:normal}.ml-s{display:none}
+.monthnav i{font-style:normal}
+.monthnav button.mlab{width:auto;min-width:130px;border-radius:999px;padding:0 12px;color:var(--fg);font-weight:600;font-size:inherit}
+.mp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.mp-h b{font-size:18px}
+.mp-h button{border:0;background:var(--surface-2);width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--fg)}
+.mp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.mp-grid button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600;color:var(--fg)}
+.mp-grid button small{font-size:12px;font-weight:500;color:var(--muted);min-height:15px}
+.mp-grid button.empty{color:var(--muted)}
+.mp-grid button.now{border-color:var(--accent)}
+.mp-grid button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}.mp-grid button[aria-pressed=true] small{color:rgba(255,255,255,.85)}
+.mp-foot{display:flex;gap:8px}.mp-foot .btn{flex:1;justify-content:center}.ml-s{display:none}
 .avgl{margin:4px 0 14px}
 .g-hero{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .g-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -354,7 +367,7 @@ textarea.field{width:100%;min-height:110px;font-size:12.5px;font-family:ui-monos
   .top-actions{width:auto;flex-wrap:nowrap;gap:6px;justify-content:flex-end}
   .monthnav{padding:2px}
   .monthnav button{width:32px;height:32px}
-  .monthnav span{min-width:0;font-size:14px;white-space:nowrap}
+  .monthnav button.mlab{min-width:0;font-size:14px;white-space:nowrap;padding:0 6px}
   .top-actions>.btn{padding:7px 11px;min-height:38px;white-space:nowrap}
   .banner{padding:7px 8px 7px 12px;margin-bottom:10px;font-size:13px;flex-wrap:nowrap}
   .grid{gap:10px}
@@ -386,7 +399,7 @@ textarea.field{width:100%;min-height:110px;font-size:12.5px;font-family:ui-monos
   .top h1{font-size:19px}
   .top{flex-wrap:wrap}.top-actions{margin-left:auto}
   .monthnav button{width:28px;height:30px}
-  .monthnav span{font-size:13px}
+  .monthnav button.mlab{font-size:13px;padding:0 4px}
   .top-actions>.btn{padding:6px 9px;font-size:14px}
   .ico{width:34px;height:34px}
   .nav button{font-size:9.5px;letter-spacing:-.02em}
@@ -792,7 +805,7 @@ const sortTx=a=>{const pos=new Map(S.txns.map((t,i)=>[t,i]));return a.slice().so
 
 /* ---------- views ---------- */
 function header(title,withMonth,action){
-  return `<div class="top"><h1>${title}</h1><div class="top-actions">${withMonth?`<div class="monthnav"><button data-month-step="-1" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button><span><i class="ml-f">${monthLabel(ui.month)}</i><i class="ml-s">${monthLabel(ui.month,1)} ${ui.month.slice(0,4)}</i></span><button data-month-step="1" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>`:''}${action||'<button class="btn primary" data-add-txn>+ Add</button>'}</div></div>
+  return `<div class="top"><h1>${title}</h1><div class="top-actions">${withMonth?`<div class="monthnav"><button data-month-step="-1" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button><button class="mlab" data-mpick aria-label="Pick month"><i class="ml-f">${monthLabel(ui.month)}</i><i class="ml-s">${monthLabel(ui.month,1)} ${ui.month.slice(0,4)}</i></button><button data-month-step="1" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>`:''}${action||'<button class="btn primary" data-add-txn>+ Add</button>'}</div></div>
   ${S.example?`<div class="banner"><span><b>Sample data</b> to try things out.</span><button class="btn sm" data-arm="clear-example">Clear</button></div>`:''}`;
 }
 function yearCard(ym){
@@ -1074,6 +1087,17 @@ function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTi
 
 /* ---------- sheets ---------- */
 function openSheet(html){const o=$('#overlay');o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;o.hidden=false;sizeAmt();const f=o.querySelector('#tx-amount')||o.querySelector('input:not([type=hidden]),select');if(f&&window.innerWidth>760)f.focus()}
+// Month picker: a year at a glance, with each month's spending.
+let mpYear;
+function monthSheet(y){
+  mpYear=y;const cur=ymOf(new Date()),has=new Set(S.txns.map(t=>t.date.slice(0,7)));
+  const cells=Array.from({length:12},(_,i)=>{const ym=y+'-'+pad(i+1),sp=spentIn(ym);
+    return `<button data-pick="${ym}" class="${ym===cur?'now':''} ${has.has(ym)?'':'empty'}" ${ym===ui.month?'aria-pressed="true"':''}>${monthLabel(ym,1)}<small class="num">${sp?kfmt(sp):''}</small></button>`}).join('');
+  const html=`<div class="mp-h"><button data-mp-year="-1" aria-label="Previous year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button><b>${y}</b><button data-mp-year="1" aria-label="Next year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>
+    <div class="mp-grid">${cells}</div>
+    <div class="mp-foot"><button class="btn" data-pick="${cur}">This month</button><button class="btn" data-close>Close</button></div>`;
+  const sh=$('#overlay .sheet.mp');if(sh)sh.innerHTML=html;else{openSheet(html);$('#overlay .sheet').classList.add('mp')}
+}
 function closeSheet(){$('#overlay').hidden=true;$('#overlay').innerHTML='';if(needRender){needRender=false;render()}}
 
 const XSVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -1178,6 +1202,9 @@ document.addEventListener('click',e=>{
   if(d.tab){ui.manage=false;ui.editBud=false;ui.sp=d.tab==='budgets'&&!el.closest('#nav')?'bud':'tx';ui.tab=d.tab==='transactions'?'budgets':d.tab;saveUI();render();window.scrollTo(0,0);return}
   if(d.monthStep){ui.month=addMonth(ui.month,+d.monthStep);render();return}
   if(d.month){ui.month=d.month;render();return}
+  if('mpick' in d){monthSheet(+ui.month.slice(0,4));return}
+  if(d.mpYear){monthSheet(mpYear+ +d.mpYear);return}
+  if(d.pick){ui.month=d.pick;saveUI();closeSheet();render();return}
   if('addTxn' in d){txnSheet();return}
   if(d.edittxn){txnSheet(S.txns.find(t=>t.id===d.edittxn));return}
   if('addCat' in d){catSheet();return}
