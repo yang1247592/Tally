@@ -53,6 +53,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -252,6 +255,14 @@ button.bud:hover{background:var(--surface-2)}
 .donut-wrap{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:center}
 table.share{width:100%;border-collapse:collapse;font-size:14px}
 table.share td,table.share th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.wc{border:0;background:none;padding:0;color:inherit;font:inherit;display:flex;align-items:center;width:100%;min-width:0;text-align:left;cursor:pointer}
+.wc>.dot{flex:none}.wc .wn{margin-left:6px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
+.wc .chev{margin-left:auto;flex:none;color:var(--muted);transition:transform .15s}
+.wc[aria-expanded=true] .chev{transform:rotate(180deg)}
+.wrow{cursor:pointer}.wrow:hover td{background:var(--surface-2)}
+table.share tr.wx td{text-align:left;padding:2px 0 8px;white-space:normal;max-width:none}
+.wx-t{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;width:100%;border:0;background:none;padding:7px 8px 7px 18px;font:inherit;font-size:13.5px;color:var(--fg);text-align:left;border-radius:8px}
+.wx-t:hover{background:var(--surface-2)}.wx-t .d{color:var(--muted)}.wx-t .m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wx-t .a{font-weight:600}
 table.share th{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 table.share td:first-child,table.share th:first-child{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:100%}
 .dot{display:inline-block;vertical-align:middle;width:9px;height:9px;border-radius:50%;margin-right:8px;background:var(--c)}
@@ -948,7 +959,9 @@ function vTrends(){
   <section class="card mt"><div class="card-h"><h2>Where ${monthLabel(ym,1)} went</h2></div>
     <div class="donut-wrap">${donut(rows,total)}
       <div class="scroll-x"><table class="share num"><thead><tr><th>Category</th><th>Spent</th><th>Share</th><th>vs avg</th></tr></thead><tbody>
-      ${rows.map(r=>{const d=r.v-r.a;return `<tr><td><span class="dot" style="--c:${esc(r.c.color)}"></span>${esc(r.c.name)}</td><td>${money(r.v,1)}</td><td>${total?Math.round(r.v/total*100):0}%</td><td style="color:${r.a<1?'var(--muted)':d>0?'var(--bad)':'var(--good)'}">${r.a<1||Math.abs(d)<1?'—':(d>0?'+':'−')+money(Math.abs(d),1)}</td></tr>`}).join('')}
+      ${rows.map(r=>{const d=r.v-r.a,key=r.c.id||'_',tx=sortTx(txnsIn(ym).filter(t=>t.kind!=='income'&&(t.categoryId||'_')===key));
+        const list=tx.length?`<tr class="wx" data-wx="${esc(key)}" hidden><td colspan="4">${tx.map(t=>`<button class="wx-t" data-edittxn="${esc(t.id)}"><span class="d">${shortDate(t.date)}</span><span class="m">${esc(t.merchant)}</span><span class="a">${t.amount<0?'−':''}${money(Math.abs(t.amount))}</span></button>`).join('')}</td></tr>`:'';
+        return `<tr class="${tx.length?'wrow':''}"><td>${tx.length?`<button class="wc" data-wcat="${esc(key)}" aria-expanded="false">`:''}<span class="dot" style="--c:${esc(r.c.color)}"></span>${esc(r.c.name)}${tx.length?`<span class="wn">${tx.length}</span><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>`:''}</td><td>${money(r.v,1)}</td><td>${total?Math.round(r.v/total*100):0}%</td><td style="color:${r.a<1?'var(--muted)':d>0?'var(--bad)':'var(--good)'}">${r.a<1||Math.abs(d)<1?'—':(d>0?'+':'−')+money(Math.abs(d),1)}</td></tr>${list}`}).join('')}
       </tbody></table></div></div></section>`;
 }
 function recRow(r,date){
@@ -1196,12 +1209,14 @@ function doRestore(text){
 
 document.addEventListener('click',e=>{
   if(e.target.closest('[data-focus-amt]')&&e.target.id!=='tx-amount'){$('#tx-amount').focus();return}
+  const wr=e.target.closest('tr.wrow');if(wr&&!e.target.closest('button')){wr.querySelector('.wc').click();return}
   const el=e.target.closest('button,.overlay');if(!el)return;
   if(el.id==='overlay'){if(e.target===el)closeSheet();return}
   const d=el.dataset;
   if(d.tab){ui.manage=false;ui.editBud=false;ui.sp=d.tab==='budgets'&&!el.closest('#nav')?'bud':'tx';ui.tab=d.tab==='transactions'?'budgets':d.tab;saveUI();render();window.scrollTo(0,0);return}
   if(d.monthStep){ui.month=addMonth(ui.month,+d.monthStep);render();return}
   if(d.month){ui.month=d.month;render();return}
+  if(d.wcat!==undefined){const x=$(`[data-wx="${CSS.escape(d.wcat)}"]`),open=x.hidden;x.hidden=!open;el.setAttribute('aria-expanded',open);return}
   if('mpick' in d){monthSheet(+ui.month.slice(0,4));return}
   if(d.mpYear){monthSheet(mpYear+ +d.mpYear);return}
   if(d.pick){ui.month=d.pick;saveUI();closeSheet();render();return}
