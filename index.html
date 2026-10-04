@@ -47,6 +47,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -106,6 +109,9 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 .banner b{color:var(--accent)}
 
 .grid{display:grid;gap:18px}
+.mt{margin-top:18px}
+.monthnav i{font-style:normal}.ml-s{display:none}
+.avgl{margin:4px 0 14px}
 .g-hero{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .g-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);min-width:0}
@@ -341,9 +347,47 @@ textarea.field{width:100%;min-height:110px;font-size:12.5px;font-family:ui-monos
   .overlay{place-items:end center;padding:0}
   .sheet{border-radius:22px 22px 0 0;width:100%;padding-top:12px;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
   .sheet::before{content:"";display:block;width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+  /* Phone: denser layout so more of each screen fits at once. */
+  main{padding-block:12px 92px;padding-inline:14px}
+  .top{flex-wrap:nowrap;margin-bottom:12px;gap:8px}
+  .top h1{font-size:21px;white-space:nowrap}
+  .top-actions{width:auto;flex-wrap:nowrap;gap:6px;justify-content:flex-end}
+  .monthnav{padding:2px}
+  .monthnav button{width:32px;height:32px}
+  .monthnav span{min-width:0;font-size:14px;white-space:nowrap}
+  .top-actions>.btn{padding:7px 11px;min-height:38px;white-space:nowrap}
+  .banner{padding:7px 8px 7px 12px;margin-bottom:10px;font-size:13px;flex-wrap:nowrap}
+  .grid{gap:10px}
+  .mt{margin-top:10px}
+  .ml-f{display:none}.ml-s{display:inline}
+  .avgl{margin:2px 0 8px}
+  .banner .btn.sm{min-height:32px;padding:5px 12px}
+  .card{padding:13px 14px}
+  .card-h{margin-bottom:8px}
+  h2{font-size:16px}
+  .big{font-size:32px;margin:2px 0 4px}
+  .sub{font-size:13px}
+  .pace-line{padding:6px 10px;margin-bottom:8px;font-size:13px}
+  .over-call{padding:7px 10px;margin:0 0 8px;gap:3px}
+  .over-call .oc-h{font-size:13px}
+  .legend{gap:4px 12px;font-size:11.5px;margin-top:4px}
+  .glance .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px}
+  .glance .stat{flex-direction:column;align-items:flex-start;gap:0;padding:0;border:0}
+  .glance .stat .sub{font-size:11.5px}
+  .glance .stat .v{font-size:18px}
+  .ystats{gap:8px 10px}
+  .ystats .v{font-size:19px}
+  .bud{padding-block:7px}
+  .txn{padding:7px 4px}
+  .ico{width:32px;height:32px;font-size:16px}
 }
 @media (max-width:360px){
   main{padding-inline:12px}
+  .top h1{font-size:19px}
+  .top{flex-wrap:wrap}.top-actions{margin-left:auto}
+  .monthnav button{width:28px;height:30px}
+  .monthnav span{font-size:13px}
+  .top-actions>.btn{padding:6px 9px;font-size:14px}
   .ico{width:34px;height:34px}
   .nav button{font-size:9.5px;letter-spacing:-.02em}
   .mrow{grid-template-columns:52px minmax(0,1fr) auto;gap:8px;padding:8px 6px}
@@ -748,7 +792,7 @@ const sortTx=a=>{const pos=new Map(S.txns.map((t,i)=>[t,i]));return a.slice().so
 
 /* ---------- views ---------- */
 function header(title,withMonth,action){
-  return `<div class="top"><h1>${title}</h1><div class="top-actions">${withMonth?`<div class="monthnav"><button data-month-step="-1" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button><span>${monthLabel(ui.month)}</span><button data-month-step="1" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>`:''}${action||'<button class="btn primary" data-add-txn>+ Add</button>'}</div></div>
+  return `<div class="top"><h1>${title}</h1><div class="top-actions">${withMonth?`<div class="monthnav"><button data-month-step="-1" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button><span><i class="ml-f">${monthLabel(ui.month)}</i><i class="ml-s">${monthLabel(ui.month,1)} ${ui.month.slice(0,4)}</i></span><button data-month-step="1" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>`:''}${action||'<button class="btn primary" data-add-txn>+ Add</button>'}</div></div>
   ${S.example?`<div class="banner"><span><b>Sample data</b> to try things out.</span><button class="btn sm" data-arm="clear-example">Clear</button></div>`:''}`;
 }
 function yearCard(ym){
@@ -763,7 +807,7 @@ function yearCard(ym){
   const avgS=sum(base,spentIn)/base.length,avgI=sum(base,incomeIn)/base.length,B=totalBudget();
   const range=base.length>1?`${monthLabel(base[0],1)}–${monthLabel(base[base.length-1],1)}`:monthLabel(base[0],1);
   const saved=inc?Math.round((inc-spent)/inc*100):0;
-  return `<section class="card" style="margin-top:18px"><div class="card-h"><h2>${y===nowYm.slice(0,4)?y+' so far':y}</h2><span class="sub">${full.length&&full.length<months.length?`Avg of ${range}`:`${months.length} month${months.length===1?'':'s'}`}</span></div>
+  return `<section class="card mt"><div class="card-h"><h2>${y===nowYm.slice(0,4)?y+' so far':y}</h2><span class="sub">${full.length&&full.length<months.length?`Avg of ${range}`:`${months.length} month${months.length===1?'':'s'}`}</span></div>
     <div class="ystats">
       <div><div class="eyebrow">Total spent</div><div class="v num">${money(spent,1)}</div></div>
       <div><div class="eyebrow">Avg spent / month</div><div class="v num">${money(avgS,1)}</div>${B?`<div class="sub num" style="color:${avgS>B?'var(--bad)':'var(--good)'}">${money(Math.abs(avgS-B),1)} ${avgS>B?'over':'under'} budget</div>`:''}</div>
@@ -785,15 +829,15 @@ function vDashboard(){
       <div class="eyebrow">${left>=0?'Left to spend':'Over budget'}</div>
       <div class="big num ${left<0?'over':''}">${money(Math.abs(left),1)}</div>
       <div class="sub num">${money(spent,1)} spent of ${money(B,1)}${daysLeft?` · ${daysLeft} day${daysLeft===1?'':'s'} left`:''}${daysLeft&&left>0?` · ${money(left/daysLeft,1)}/day`:''} · <button class="link" data-edit-bud style="font-size:14px">Change budget</button></div>
-      <div class="sub num" style="margin:4px 0 14px">${!av.n?'':Math.abs(diff)<1?`Same as ${avgLabel(av.n)}`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> vs ${avgLabel(av.n)}`}</div>
+      <div class="sub num avgl">${!av.n?'':Math.abs(diff)<1?`Same as ${avgLabel(av.n)}`:`<span class="delta ${diff<=0?'good':'bad'}">${money(Math.abs(diff),1)} ${diff<=0?'less':'more'}</span> vs ${avgLabel(av.n)}`}</div>
       ${paceLine(ym)}${overCallout(ym)}${cumChart(ym)}
     </section>
-    <section class="card">
+    <section class="card glance">
       <div class="card-h"><h2>${monthLabel(ym,1)} at a glance</h2></div>
       <div class="stats">
         <div class="stat"><span class="sub">Income</span><span class="v num good">${money(inc,1)}</span></div>
         <div class="stat"><span class="sub">Spent</span><span class="v num">${money(spent,1)}</span></div>
-        ${(()=>{const L=overList(ym),t=sum(L,x=>x.over);return `<div class="stat"><span class="sub">Over budget${L.length?` (${L.length} categor${L.length===1?'y':'ies'})`:''}</span><span class="v num ${t?'bad':''}">${money(t,1)}</span></div>`})()}
+        ${(()=>{const L=overList(ym),t=sum(L,x=>x.over);return `<div class="stat"><span class="sub">Over budget${L.length?`<span class="hide-m"> (${L.length} categor${L.length===1?'y':'ies'})</span>`:''}</span><span class="v num ${t?'bad':''}">${money(t,1)}</span></div>`})()}
         <div class="stat"><span class="sub">Net</span><span class="v num ${inc-spent>=0?'good':'bad'}">${inc-spent<0?'−':''}${money(Math.abs(inc-spent),1)}</span></div>
         ${ym===cur?(()=>{const end=ym+'-'+pad(N),due=sum(S.recurring.filter(r=>!r.paused&&r.kind!=='income'),r=>occurrences(r,todayStr(),end).length*r.amount);return `<div class="stat"><span class="sub">Bills still due</span><span class="v num">${money(due,1)}</span></div>`})():''}
         <div class="stat"><span class="sub">Saved</span><span class="v num">${inc?Math.round((inc-spent)/inc*100):0}%</span></div>
@@ -801,7 +845,7 @@ function vDashboard(){
     </section>
   </div>
   ${yearCard(ym)}
-  <div class="grid g-2" style="margin-top:18px">
+  <div class="grid g-2 mt">
     <section class="card"><div class="card-h"><h2>Budgets to watch</h2><button class="link" data-tab="budgets">See all</button></div>
       ${cats.map(c=>budRow(c,by[c.id]||0,ym,1)).join('')||'<div class="empty">No categories yet.</div>'}</section>
     <section class="card"><div class="card-h"><h2>Recent transactions</h2><button class="link" data-show-tx>See all</button></div>
@@ -886,9 +930,9 @@ function vTrends(){
   <section class="card"><div class="card-h"><h2>Month by month</h2></div>
     <div class="mlist">${mrows}</div>
     ${B?`<div class="legend"><span><i style="background:var(--fg);opacity:.4;width:2px;height:12px"></i>Monthly budget ${money(B,1)}</span></div>`:''}</section>
-  <section class="card" style="margin-top:18px"><div class="card-h"><h2>Each category, last 6 months</h2><span class="sub">Dashed = budget</span></div>
+  <section class="card mt"><div class="card-h"><h2>Each category, last 6 months</h2><span class="sub">Dashed = budget</span></div>
     <div class="mults">${mults||'<div class="empty">No spending yet.</div>'}</div></section>
-  <section class="card" style="margin-top:18px"><div class="card-h"><h2>Where ${monthLabel(ym,1)} went</h2></div>
+  <section class="card mt"><div class="card-h"><h2>Where ${monthLabel(ym,1)} went</h2></div>
     <div class="donut-wrap">${donut(rows,total)}
       <div class="scroll-x"><table class="share num"><thead><tr><th>Category</th><th>Spent</th><th>Share</th><th>vs avg</th></tr></thead><tbody>
       ${rows.map(r=>{const d=r.v-r.a;return `<tr><td><span class="dot" style="--c:${esc(r.c.color)}"></span>${esc(r.c.name)}</td><td>${money(r.v,1)}</td><td>${total?Math.round(r.v/total*100):0}%</td><td style="color:${r.a<1?'var(--muted)':d>0?'var(--bad)':'var(--good)'}">${r.a<1||Math.abs(d)<1?'—':(d>0?'+':'−')+money(Math.abs(d),1)}</td></tr>`}).join('')}
