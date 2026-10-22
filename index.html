@@ -59,6 +59,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -260,9 +263,9 @@ table.share{width:100%;border-collapse:collapse;font-size:14px}
 table.share td,table.share th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .rord-i{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);background:var(--surface)}.rord-i .m{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rord-i.dragging{box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:10px;position:relative;z-index:5}
-.rord-i .grip{padding:8px 6px;font-size:16px}
-.grip{border:0;background:none;color:var(--muted);padding:2px 4px;margin-left:-4px;cursor:grab;touch-action:none;font-size:14px;letter-spacing:-3px;line-height:1;user-select:none;-webkit-user-select:none}
-.mult.dragging{position:relative;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.22);opacity:.92;transform:scale(1.02);cursor:grabbing}
+.rord-i .grip{padding:14px 10px;margin:-8px 0 -8px -6px;font-size:16px}
+.grip{border:0;background:none;color:var(--muted);padding:12px 10px;margin:-12px 0 -12px -10px;cursor:grab;touch-action:none;font-size:14px;letter-spacing:-3px;line-height:1;user-select:none;-webkit-user-select:none}
+.mult.dragging{position:relative;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.22);opacity:.92;cursor:grabbing}
 .wc{border:0;background:none;padding:0;color:inherit;font:inherit;display:flex;align-items:center;width:100%;min-width:0;text-align:left;cursor:pointer}
 .wc>.dot{flex:none}.wc .wn{margin-left:6px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
 .wc .chev{margin-left:auto;flex:none;color:var(--muted);transition:transform .15s}
@@ -1284,15 +1287,26 @@ document.addEventListener('change',e=>{
 // Drag a Trends card by its grip to reorder; arrow keys on the grip work too.
 function saveTrendOrder(box){S[box.dataset.ord||'trendOrder']=[...box.children].map(x=>x.dataset.cid).filter(Boolean);save()}
 document.addEventListener('pointerdown',e=>{
-  const g=e.target.closest('[data-grip]');if(!g)return;
+  const g=e.target.closest('[data-grip]');if(!g||(e.pointerType==='mouse'&&e.button))return;
   const card=g.closest('[data-cid]'),box=card.parentElement;e.preventDefault();
-  card.classList.add('dragging');
-  let y=e.clientY,raf=0;
-  const move=ev=>{y=ev.clientY;const o=document.elementsFromPoint(ev.clientX,ev.clientY).find(n=>n!==card&&n.dataset&&n.dataset.cid!==undefined&&n.parentElement===box);
-    if(o){const kids=[...box.children];box.insertBefore(card,kids.indexOf(o)<kids.indexOf(card)?o:o.nextSibling)}};
-  const scroll=()=>{if(y<70)scrollBy(0,-14);else if(y>innerHeight-70)scrollBy(0,14);raf=requestAnimationFrame(scroll)};raf=requestAnimationFrame(scroll);
-  // Listen on window: moving the card in the DOM would drop pointer capture on the grip.
-  const end=()=>{cancelAnimationFrame(raf);card.classList.remove('dragging');removeEventListener('pointermove',move);removeEventListener('pointerup',end);removeEventListener('pointercancel',end);saveTrendOrder(box)};
+  // The dragged card follows the pointer with a transform and the others slide aside; the DOM
+  // is only reordered on release, because moving a touched node mid-gesture cancels it on some phones.
+  const items=[...box.children].filter(x=>x.dataset.cid!==undefined),from=items.indexOf(card);
+  const r0=items.map(x=>{const r=x.getBoundingClientRect();return {x:r.left+scrollX,y:r.top+scrollY,w:r.width,h:r.height}});
+  const sx=e.clientX+scrollX,sy=e.clientY+scrollY;let to=from,cx=e.clientX,cy=e.clientY,raf=0;
+  card.classList.add('dragging');items.forEach(x=>{if(x!==card)x.style.transition='transform .15s'});
+  const place=()=>{
+    const px=cx+scrollX,py=cy+scrollY;card.style.transform=`translate(${px-sx}px,${py-sy}px) scale(1.02)`;
+    // Slot whose centre is nearest the pointer (slots are the cards' original positions).
+    let t=from,best=1e12;r0.forEach((r,i)=>{const d=(px-r.x-r.w/2)**2+(py-r.y-r.h/2)**2;if(d<best){best=d;t=i}});to=t;
+    const order=items.map((_,i)=>i).filter(i=>i!==from);order.splice(to,0,from);
+    order.forEach((i,k)=>{if(i!==from)items[i].style.transform=`translate(${r0[k].x-r0[i].x}px,${r0[k].y-r0[i].y}px)`});
+  };
+  const move=ev=>{cx=ev.clientX;cy=ev.clientY;place()};
+  const tick=()=>{if(cy<70)scrollBy(0,-14);else if(cy>innerHeight-70)scrollBy(0,14);place();raf=requestAnimationFrame(tick)};raf=requestAnimationFrame(tick);
+  const end=()=>{cancelAnimationFrame(raf);removeEventListener('pointermove',move);removeEventListener('pointerup',end);removeEventListener('pointercancel',end);
+    items.forEach(x=>{x.style.transform='';x.style.transition=''});card.classList.remove('dragging');
+    if(to!==from){const o=items.filter(x=>x!==card);o.splice(to,0,card);o.forEach(x=>box.appendChild(x));saveTrendOrder(box)}};
   addEventListener('pointermove',move);addEventListener('pointerup',end);addEventListener('pointercancel',end);
 });
 document.addEventListener('keydown',e=>{const g=e.target.closest&&e.target.closest('[data-grip]');if(!g||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'&&e.key!=='ArrowLeft'&&e.key!=='ArrowRight'))return;
