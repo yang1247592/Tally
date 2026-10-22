@@ -56,6 +56,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sidebar nav + month-scoped main column on desktop; bottom tab bar on phones. Soft cool neutrals, one indigo accent, category colors carry the rest. */
 :root{
@@ -163,7 +166,7 @@ main{padding-block:24px 60px;padding-inline:clamp(16px,3vw,40px);max-width:1120p
 .pace-line.good{background:color-mix(in srgb,var(--good) 10%,transparent)}.pace-line.good>b:first-child{color:var(--good)}
 .over-call .dot{width:8px;height:8px;margin-right:6px}
 .bud-actions{display:flex;gap:8px;flex-wrap:wrap}
-@media (max-width:760px){.hide-m{display:none}.bud-actions{width:100%;flex-wrap:nowrap}.bud-actions .btn{flex:1 1 auto;justify-content:center;padding-inline:8px;white-space:nowrap}}
+@media (max-width:760px){.hide-m{display:none}.bud-actions{width:100%;flex-wrap:wrap}.bud-actions .btn{flex:1 1 40%;justify-content:center;padding-inline:8px;white-space:nowrap}}
 .link{border:0;background:none;color:var(--accent);font-weight:600;padding:0;font-size:14px}
 .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
 .big{font-family:var(--font-display);font-size:clamp(34px,5vw,46px);font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:4px 0 6px}
@@ -255,6 +258,11 @@ button.bud:hover{background:var(--surface-2)}
 .donut-wrap{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:center}
 table.share{width:100%;border-collapse:collapse;font-size:14px}
 table.share td,table.share th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.rord-i{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);background:var(--surface)}.rord-i .m{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rord-i.dragging{box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:10px;position:relative;z-index:5}
+.rord-i .grip{padding:8px 6px;font-size:16px}
+.grip{border:0;background:none;color:var(--muted);padding:2px 4px;margin-left:-4px;cursor:grab;touch-action:none;font-size:14px;letter-spacing:-3px;line-height:1;user-select:none;-webkit-user-select:none}
+.mult.dragging{position:relative;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.22);opacity:.92;transform:scale(1.02);cursor:grabbing}
 .wc{border:0;background:none;padding:0;color:inherit;font:inherit;display:flex;align-items:center;width:100%;min-width:0;text-align:left;cursor:pointer}
 .wc>.dot{flex:none}.wc .wn{margin-left:6px;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
 .wc .chev{margin-left:auto;flex:none;color:var(--muted);transition:transform .15s}
@@ -528,7 +536,7 @@ function syncBlurb(){
   return `<b style="color:${sync.state==='error'?'var(--warn)':'var(--good)'}">${SYNC_TEXT[sync.state]}</b> Open this link on any device signed in to the same Claude account. Your data is private to you, even if you share the link with someone.`;
 }
 function docsFromState(){
-  const m=new Map([['meta',{categories:S.categories,recurring:S.recurring,example:!!S.example,done:S.done||[]}]]),by={};
+  const m=new Map([['meta',{categories:S.categories,recurring:S.recurring,example:!!S.example,done:S.done||[],trendOrder:S.trendOrder||[],catOrder:S.catOrder||[]}]]),by={};
   for(const t of S.txns)(by[t.date.slice(0,7)]=by[t.date.slice(0,7)]||[]).push(t);
   for(const k in by)m.set('m-'+k,{txns:by[k]});
   return m;
@@ -536,7 +544,7 @@ function docsFromState(){
 function stateFromDocs(docs){
   const meta=docs.get('meta')||{},txns=[];
   for(const [k,v] of docs)if(k.startsWith('m-')&&Array.isArray(v.txns))txns.push(...v.txns);
-  return {categories:Array.isArray(meta.categories)?meta.categories:[],recurring:Array.isArray(meta.recurring)?meta.recurring:[],example:!!meta.example,updatedAt:meta.updatedAt||0,done:Array.isArray(meta.done)?meta.done:[],txns,syncUid:sync.uid};
+  return {categories:Array.isArray(meta.categories)?meta.categories:[],recurring:Array.isArray(meta.recurring)?meta.recurring:[],example:!!meta.example,updatedAt:meta.updatedAt||0,done:Array.isArray(meta.done)?meta.done:[],trendOrder:Array.isArray(meta.trendOrder)?meta.trendOrder:[],catOrder:Array.isArray(meta.catOrder)?meta.catOrder:[],txns,syncUid:sync.uid};
 }
 function scheduleSync(){if(!sync.col||sync.first)return;sync.dirty=true;clearTimeout(sync.timer);sync.timer=setTimeout(flush,700)}
 /* Three-way merge. S.base remembers the synced data as this device last saw it, so
@@ -545,7 +553,7 @@ function scheduleSync(){if(!sync.col||sync.first)return;sync.dirty=true;clearTim
    Both sides' changes are kept; only a record changed on both sides at once goes to this device. */
 const canon=v=>v instanceof Map?canon(Object.fromEntries(v)):Array.isArray(v)?'['+v.map(canon).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}':JSON.stringify(v);
 const COLLS=[['txns','t'],['recurring','r'],['categories','c']];
-function mkBase(st){const b={example:!!st.example};for(const [k,s] of COLLS)b[s]=Object.fromEntries((st[k]||[]).map(x=>[x.id,canon(x)]));return b}
+function mkBase(st){const b={example:!!st.example,o:canon(st.trendOrder||[]),p:canon(st.catOrder||[])};for(const [k,s] of COLLS)b[s]=Object.fromEntries((st[k]||[]).map(x=>[x.id,canon(x)]));return b}
 function merge3(base,local,cloud){
   const out={...local};
   for(const [k,s] of COLLS){
@@ -555,6 +563,8 @@ function merge3(base,local,cloud){
     out[k]=[...res.values()];
   }
   out.done=[...new Set([...(cloud.done||[]),...(local.done||[])])];
+  out.trendOrder=canon(local.trendOrder||[])!==(base.o??canon([]))?(local.trendOrder||[]):(cloud.trendOrder||[]);
+  out.catOrder=canon(local.catOrder||[])!==(base.p??canon([]))?(local.catOrder||[]):(cloud.catOrder||[]);
   out.example=!!local.example===!!base.example?!!cloud.example:!!local.example;
   return out;
 }
@@ -665,6 +675,8 @@ function saveUI(){try{localStorage.setItem(UIKEY,JSON.stringify({tab:ui.tab}))}c
 
 const UNCAT={id:null,name:'Uncategorized',icon:'•',color:'#8c90a0',budget:0};
 const INCOME={id:null,name:'Income',icon:'💵',color:'#1f9a64'};
+// Categories in the order the user dragged them to (new ones go last).
+const ocats=()=>{const o=S.catOrder||[],r=id=>{const i=o.indexOf(id);return i<0?1e6:i};return S.categories.map((c,i)=>[c,i]).sort((a,b)=>r(a[0].id)-r(b[0].id)||a[1]-b[1]).map(x=>x[0])};
 const cat=id=>S.categories.find(c=>c.id===id)||UNCAT;
 const txnsIn=ym=>S.txns.filter(t=>t.date.startsWith(ym));
 const totalBudget=()=>S.categories.reduce((s,c)=>s+(+c.budget||0),0);
@@ -894,7 +906,7 @@ function txSection(){
   return `<div class="tx-head"><div><div class="sub num">${list.length} transaction${list.length===1?'':'s'} · ${money(tot,1)} spent${inc?` · <span style="color:var(--good)">${money(inc,1)} in</span>`:''}</div></div>
     ${fc?`<button class="btn sm" data-editcat="${esc(fc.id)}">Edit ${esc(fc.name)}</button>`:''}</div>
   <label class="tx-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search merchant, note or category" value="${esc(ui.q)}" aria-label="Search transactions" autocomplete="off"></label>
-  <div class="fchips" role="group" aria-label="Filter by category">${chip('all','All','','var(--accent)')}${chip('income','Income','💵','var(--good)')}${S.categories.map(c=>chip(c.id,c.name,c.icon,c.color)).join('')}</div>
+  <div class="fchips" role="group" aria-label="Filter by category">${chip('all','All','','var(--accent)')}${chip('income','Income','💵','var(--good)')}${ocats().map(c=>chip(c.id,c.name,c.icon,c.color)).join('')}</div>
   <div id="txlist">${body||`<div class="dcard empty">No transactions match.${!q&&ui.cat==='all'?'<br><br><button class="btn" data-add-txn>+ Add a transaction</button>':q||ui.cat!=='all'?'<br><br><button class="btn" data-clear-filter>Show all</button>':''}</div>`}</div>`;
 }
 function budEditor(ym){
@@ -922,10 +934,10 @@ function vBudgets(){
     <div class="card"><div class="eyebrow">${B-spent>=0?'Remaining':'Over'}</div><div class="v num" style="color:${B-spent>=0?'var(--good)':'var(--bad)'}">${money(Math.abs(B-spent),1)}</div></div>
   </div>
   ${paceLine(ym)}${overCallout(ym,1)}
-  <section class="card"><div class="card-h"><h2>Monthly budgets</h2>${ui.editBud?'':`<div class="bud-actions"><button class="btn sm primary" data-edit-bud>Edit budgets</button><button class="btn sm" data-add-cat>+ Category</button><button class="btn sm" data-toggle-manage>${ui.manage?'Done':'Remove'}</button></div>`}</div>
+  <section class="card"><div class="card-h"><h2>Monthly budgets</h2>${ui.editBud?'':`<div class="bud-actions"><button class="btn sm primary" data-edit-bud>Edit budgets</button><button class="btn sm" data-add-cat>+ Category</button><button class="btn sm" data-toggle-order>${ui.manage==='ord'?'Done':'Reorder'}</button><button class="btn sm" data-toggle-manage>${ui.manage===true?'Done':'Remove'}</button></div>`}</div>
     <div class="sub" style="margin:-6px 0 8px" ${ui.editBud||ui.manage?'hidden':''}>Tap a category to see its transactions.</div>
-    ${ui.editBud?budEditor(ym):ui.manage?S.categories.map(c=>{const n=S.txns.filter(t=>t.categoryId===c.id).length;return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">${ico(c)}<div class="txn-main"><div class="m">${esc(c.name)}</div><div class="c" style="white-space:normal">${n} transaction${n===1?'':'s'} · ${money(+c.budget||0,1)}/mo budget</div></div><button class="btn sm danger" data-arm="del-cat" data-cat="${esc(c.id)}" title="${n} transaction${n===1?'':'s'} will become Uncategorized">Remove</button></div>`}).join('')+'<div class="sub" style="margin-top:8px">Transactions in removed categories become Uncategorized.</div>'
-      :S.categories.map(c=>budRow(c,by[c.id]||0,ym,1)).join('')}
+    ${ui.editBud?budEditor(ym):ui.manage==='ord'?`<div class="rord" data-ord="catOrder">${ocats().map(c=>`<div class="rord-i" data-cid="${esc(c.id)}"><button class="grip" data-grip aria-label="Reorder ${esc(c.name)}">⋮⋮</button>${ico(c)}<span class="m">${esc(c.name)}</span><span class="sub num">${money(+c.budget||0,1)}/mo</span></div>`).join('')}</div>`:ui.manage?S.categories.map(c=>{const n=S.txns.filter(t=>t.categoryId===c.id).length;return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">${ico(c)}<div class="txn-main"><div class="m">${esc(c.name)}</div><div class="c" style="white-space:normal">${n} transaction${n===1?'':'s'} · ${money(+c.budget||0,1)}/mo budget</div></div><button class="btn sm danger" data-arm="del-cat" data-cat="${esc(c.id)}" title="${n} transaction${n===1?'':'s'} will become Uncategorized">Remove</button></div>`}).join('')+'<div class="sub" style="margin-top:8px">Transactions in removed categories become Uncategorized.</div>'
+      :ocats().map(c=>budRow(c,by[c.id]||0,ym,1)).join('')}
     ${unc?budRow(UNCAT,unc,ym,0):''}
   </section>`;
 }
@@ -944,18 +956,22 @@ function vTrends(){
       <span class="mv num">${money(v,1)}${B?`<small style="color:${d>0?'var(--bad)':'var(--good)'}">${money(Math.abs(d),1)} ${d>0?'over':'under'}</small>`:''}</span></button>`}).join('');
   const six=[];for(let i=5;i>=0;i--)six.push(addMonth(ym,-i));
   const catsFor=[...S.categories,...(S.txns.some(t=>t.kind!=='income'&&!t.categoryId)?[UNCAT]:[])];
-  const mults=catsFor.map(c=>{const key=c.id||'_',vals=six.map(m=>spentByCat(m)[key]||0),b=+c.budget||0,top=Math.max(b,...vals,1),a=sum(vals.slice(0,5),x=>x)/5;
-      if(!b&&!vals.some(v=>v))return '';
-      return `<div class="mult"><div class="mult-h">${ico(c)}<span class="n">${esc(c.name)}</span></div>
+  const ord=S.trendOrder||[],rank=id=>{const i=ord.indexOf(id);return i<0?1e6:i};
+  const cards=catsFor.map(c=>{const key=c.id||'_',vals=six.map(m=>spentByCat(m)[key]||0),b=+c.budget||0,top=Math.max(b,...vals,1),a=sum(vals.slice(0,5),x=>x)/5;
+      if(!b&&!vals.some(v=>v))return null;
+      return {key,a,html:`<div class="mult" data-cid="${esc(key)}"><div class="mult-h"><button class="grip" data-grip aria-label="Reorder ${esc(c.name)}" title="Drag to reorder">⋮⋮</button>${ico(c)}<span class="n">${esc(c.name)}</span></div>
         <div class="spark" style="--c:${esc(c.color)}" role="img" aria-label="${esc(c.name)}, last 6 months: ${vals.map((v,i)=>monthLabel(six[i],1)+' '+money(v,1)).join(', ')}">${vals.map((v,i)=>`<i class="${i===5?'sel':''}" style="height:${v/top*100}%" title="${monthLabel(six[i],1)}: ${money(v,1)}"></i>`).join('')}${b?`<u style="bottom:${b/top*100}%"></u>`:''}</div>
         <div class="spark-l">${six.map(m=>`<span>${monthLabel(m,1).slice(0,1)}</span>`).join('')}</div>
-        <div class="mult-v"><span><b class="num">${money(vals[5],1)}</b> ${monthLabel(ym,1)}</span><span class="num">avg ${money(a,1)}</span></div></div>`}).join('');
+        <div class="mult-v"><span><b class="num">${money(vals[5],1)}</b> ${monthLabel(ym,1)}</span><span class="num">avg ${money(a,1)}</span></div></div>`}}).filter(Boolean);
+  // Highest average first, unless a dragged order is saved.
+  cards.sort((x,y)=>rank(x.key)-rank(y.key)||y.a-x.a);
+  const mults=cards.map(c=>c.html).join('');
   return header('Trends',1)+`
   <section class="card"><div class="card-h"><h2>Month by month</h2></div>
     <div class="mlist">${mrows}</div>
     ${B?`<div class="legend"><span><i style="background:var(--fg);opacity:.4;width:2px;height:12px"></i>Monthly budget ${money(B,1)}</span></div>`:''}</section>
-  <section class="card mt"><div class="card-h"><h2>Each category, last 6 months</h2><span class="sub">Dashed = budget</span></div>
-    <div class="mults">${mults||'<div class="empty">No spending yet.</div>'}</div></section>
+  <section class="card mt"><div class="card-h"><h2>Each category, last 6 months</h2><span class="sub">Dashed = budget${ord.length?` · <button class="link" data-trend-reset>Reset order</button>`:''}</span></div>
+    <div class="mults" data-ord="trendOrder">${mults||'<div class="empty">No spending yet.</div>'}</div></section>
   <section class="card mt"><div class="card-h"><h2>Where ${monthLabel(ym,1)} went</h2></div>
     <div class="donut-wrap">${donut(rows,total)}
       <div class="scroll-x"><table class="share num"><thead><tr><th>Category</th><th>Spent</th><th>Share</th><th>vs avg</th></tr></thead><tbody>
@@ -1120,7 +1136,7 @@ const kindSeg=k=>`<div class="seg kind" role="group" aria-label="Type"><button t
 const amountHero=(v,label)=>`<div class="amt-hero"><label class="amt-label" for="tx-amount">${label}</label>
     <div class="amt-row" data-focus-amt><span class="amt-cur" aria-hidden="true">$</span><input class="amt-in num" id="tx-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount in dollars" value="${v!==''&&v!=null?esc((+v).toFixed(2)):''}"></div></div>`;
 const catPicker=(sel,kind)=>`<div id="tx-cat-wrap" ${kind==='income'?'hidden':''}><div class="flabel">Category</div><input type="hidden" id="tx-cat" value="${esc(sel||'')}">
-    <div class="chips" role="group" aria-label="Category">${[...S.categories,UNCAT].map(c=>`<button type="button" class="chip" data-pickcat="${esc(c.id||'')}" style="--c:${esc(c.color)}" aria-pressed="${(c.id||'')===(sel||'')}"><span class="ci">${esc(c.icon)}</span>${esc(c.name)}</button>`).join('')}</div></div>`;
+    <div class="chips" role="group" aria-label="Category">${[...ocats(),UNCAT].map(c=>`<button type="button" class="chip" data-pickcat="${esc(c.id||'')}" style="--c:${esc(c.color)}" aria-pressed="${(c.id||'')===(sel||'')}"><span class="ci">${esc(c.icon)}</span>${esc(c.name)}</button>`).join('')}</div></div>`;
 function cleanAmt(v){const neg=/^\s*-/.test(v);v=v.replace(/[^0-9.,]/g,'');if(!v.includes('.')&&/^\d+,\d{0,2}$/.test(v))return (neg?'-':'')+v.replace(/^0+(?=\d)/,'');v=v.replace(/,(?=\d{0,2}$)/,'').replace(/,/g,'');const i=v.indexOf('.');if(i>=0)v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'').slice(0,2);v=v.replace(/^0+(?=\d)/,'');return (neg?'-':'')+v}
 function sizeAmt(){const a=$('#tx-amount');if(a)a.style.width=Math.max(1.3,(a.value||a.placeholder).length*.62+.3)+'em'}
 
@@ -1217,6 +1233,7 @@ document.addEventListener('click',e=>{
   if(d.monthStep){ui.month=addMonth(ui.month,+d.monthStep);render();return}
   if(d.month){ui.month=d.month;render();return}
   if(d.wcat!==undefined){const x=$(`[data-wx="${CSS.escape(d.wcat)}"]`),open=x.hidden;x.hidden=!open;el.setAttribute('aria-expanded',open);return}
+  if('trendReset' in d){delete S.trendOrder;save();render();return}
   if('mpick' in d){monthSheet(+ui.month.slice(0,4));return}
   if(d.mpYear){monthSheet(mpYear+ +d.mpYear);return}
   if(d.pick){ui.month=d.pick;saveUI();closeSheet();render();return}
@@ -1226,7 +1243,8 @@ document.addEventListener('click',e=>{
   if('addRec' in d){recSheet();return}
   if('editBud' in d){ui.tab='budgets';ui.sp='bud';ui.editBud=true;ui.manage=false;saveUI();render();const f=$('#budForm');if(f)f.scrollIntoView({block:'start'});return}
   if('cancelBud' in d){ui.editBud=false;render();return}
-  if('toggleManage' in d){ui.editBud=false;ui.manage=!ui.manage;render();return}
+  if('toggleManage' in d){ui.editBud=false;ui.manage=ui.manage===true?false:true;render();return}
+  if('toggleOrder' in d){ui.editBud=false;ui.manage=ui.manage==='ord'?false:'ord';render();return}
   if(d.editrec){recSheet(S.recurring.find(r=>r.id===d.editrec));return}
   if(d.editcat){catSheet(S.categories.find(c=>c.id===d.editcat));return}
   if(d.fcat!==undefined&&d.fcat!==''){ui.cat=ui.cat===d.fcat&&d.fcat!=='all'?'all':d.fcat;render();const c=document.querySelector(`.fchips [data-fcat="${CSS.escape(ui.cat)}"]`);if(c)c.scrollIntoView({inline:'center',block:'nearest'});return}
@@ -1263,6 +1281,24 @@ document.addEventListener('change',e=>{
   if(e.target.id==='csvFile'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{pendingImport=readImport(String(r.result));render()}catch(err){pendingImport=null;render();$('#csvErr').textContent=err.message}};r.readAsText(f)}
   if(e.target.id==='restoreFile'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>doRestore(String(r.result));r.readAsText(f)}
 });
+// Drag a Trends card by its grip to reorder; arrow keys on the grip work too.
+function saveTrendOrder(box){S[box.dataset.ord||'trendOrder']=[...box.children].map(x=>x.dataset.cid).filter(Boolean);save()}
+document.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('[data-grip]');if(!g)return;
+  const card=g.closest('[data-cid]'),box=card.parentElement;e.preventDefault();
+  card.classList.add('dragging');
+  let y=e.clientY,raf=0;
+  const move=ev=>{y=ev.clientY;const o=document.elementsFromPoint(ev.clientX,ev.clientY).find(n=>n!==card&&n.dataset&&n.dataset.cid!==undefined&&n.parentElement===box);
+    if(o){const kids=[...box.children];box.insertBefore(card,kids.indexOf(o)<kids.indexOf(card)?o:o.nextSibling)}};
+  const scroll=()=>{if(y<70)scrollBy(0,-14);else if(y>innerHeight-70)scrollBy(0,14);raf=requestAnimationFrame(scroll)};raf=requestAnimationFrame(scroll);
+  // Listen on window: moving the card in the DOM would drop pointer capture on the grip.
+  const end=()=>{cancelAnimationFrame(raf);card.classList.remove('dragging');removeEventListener('pointermove',move);removeEventListener('pointerup',end);removeEventListener('pointercancel',end);saveTrendOrder(box)};
+  addEventListener('pointermove',move);addEventListener('pointerup',end);addEventListener('pointercancel',end);
+});
+document.addEventListener('keydown',e=>{const g=e.target.closest&&e.target.closest('[data-grip]');if(!g||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'&&e.key!=='ArrowLeft'&&e.key!=='ArrowRight'))return;
+  const card=g.closest('[data-cid]'),box=card.parentElement,prev=e.key==='ArrowUp'||e.key==='ArrowLeft';e.preventDefault();
+  if(prev){if(card.previousElementSibling)box.insertBefore(card,card.previousElementSibling)}else if(card.nextElementSibling)box.insertBefore(card.nextElementSibling,card);
+  saveTrendOrder(box);g.focus()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#overlay').hidden)closeSheet()});
 document.addEventListener('submit',e=>{
   e.preventDefault();
